@@ -1,7 +1,7 @@
 *
-*.py[cod]
-!roblox
-!roblox/*
-!docs
-!docs/*
 !*.gitignore
+!roblox/
+!roblox/**
+!docs/
+!docs/**
+*.py[cw]
