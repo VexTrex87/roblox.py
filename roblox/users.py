@@ -45,12 +45,6 @@ class User():
         status_data = requests.get(status_url)
         return status_data['status']
 
-def get_user(user_id):
-    url = f'https://users.roblox.com/v1/users/{user_id}'
-    data = requests.get(url)
-    user = User(data)
-    return user
-
 def search_users(keyword, limit):
     try:
         limit = int(limit)
@@ -68,3 +62,20 @@ def search_users(keyword, limit):
         user = get_user(user_data['id'])
         users.append(user)
     return users
+    
+def get_user(user_id=None, username=None):
+    if not user_id and not username:
+        raise Exception('Missing argument: user_id or username')
+    elif user_id:
+        pass
+    elif username:
+        for user in search_users(username, limit=100):
+            if user.name == username:
+                return user
+        else:
+            return None
+
+    url = f'https://users.roblox.com/v1/users/{user_id}'
+    data = requests.get(url)
+    user = User(data)
+    return user
