@@ -1,71 +1,157 @@
-import roblox.requests as requests
+import roblox.exception as RobloxException
+import requests
 import datetime
 
-"""
-POST    /usernames/users
-POST    /users
-PATCH   /users/{userId}/display-names
-PATCH   /users/{userId}/status
-"""
+class BaseUser():
+    def _get_user_info(self, user_id):
+        try:
+            user_id = int(user_id)
+        except:
+            raise RobloxException.InvalidArgument('Could not convert user_id to integer')
 
-class User():
-    def __init__(self, info):
-        self.name = info.get('name')
-        self.display_name = info.get('displayName') or None
-        self.id = info.get('id')
-        self.description = info.get('description') or ''
-        self.banned = info.get('isBanned') or False
-        self.created = info.get('created') and datetime.datetime.strptime(info['created'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        if user_id <= 0:
+            raise RobloxException.InvalidArgument('user_id must be greater than 0')
 
-    def get_attributes(self):
-        return {
-            'name': self.name,
-            'display_name': self.display_name,
-            'id': self.id,
-            'description': self.description,
-            'banned': self.banned,
-            'created': self.created,
-        }
+        url = f'https://users.roblox.com/v1/users/{user_id}'
+        r = requests.get(url)
+        
+        if r.status_code == 200:
+            return r.json()
+        else:
+            if r.status_code == 404:
+                raise RobloxException.NotFound(f'[{r.status_code}] {r.reason}')
+            else:
+                raise RobloxException.UnknownError(f'[{r.status_code}] {r.reason}')
 
-    def get_username_history(self, limit):
+    def _get_user_status(self, user_id):
+        try:
+            user_id = int(user_id)
+        except:
+            raise RobloxException.InvalidArgument('Could not convert user_id to integer')
+
+        url = f'https://users.roblox.com/v1/users/{user_id}/status'
+        r = requests.get(url)
+
+        if r.status_code == 200:
+            return r.json()
+        else:
+            if r.status_code == 400:
+                raise RobloxException.BadRequest(f'[{r.status_code}] {r.reason}')
+            elif r.status_code == 429:
+                raise RobloxException.TooManyRequests(f'[{r.status_code}] {r.reason}')
+            else:
+                raise RobloxException.UnknownError(f'[{r.status_code}] {r.reason}')
+
+    def _get_user_username_history(self, user_id, limit):
+        try:
+            user_id = int(user_id)
+        except:
+            raise RobloxException.InvalidArgument('Could not convert user_id to integer')
+        
         try:
             limit = int(limit)
-        except ValueError:
-            raise Exception('Could not convert limit to integer')
+        except:
+            raise RobloxException.InvalidArgument('Could not convert limit to integer')
 
         if not limit in [10, 25, 50, 100]:
-            raise Exception('Limit must be 10, 25, 50, or 100')
+            raise RobloxException.InvalidArgument('Limit must be 10, 25, 50, or 100')
 
-        username_history_url = f'https://users.roblox.com/v1/users/{self.id}/username-history?limit={limit}&sortOrder=Asc'
-        username_history_data = requests.get(username_history_url)
-        return [username['name'] for username in username_history_data['data']]
+        url = f'https://users.roblox.com/v1/users/{user_id}/username-history?limit={limit}&sortOrder=Asc'
+        r = requests.get(url)
+
+        if r.status_code == 200:
+            return r.json()
+        else:
+            if r.status_code == 400:
+                raise RobloxException.BadRequest(f'[{r.status_code}] {r.reason}')
+            elif r.status_code == 429:
+                raise RobloxException.TooManyRequests(f'[{r.status_code}] {r.reason}')
+            else:
+                raise RobloxException.UnknownError(f'[{r.status_code}] {r.reason}')
+
+    def _search_users(self, keyword, limit):
+        try:
+            keyword = str(keyword)
+        except:
+            raise RobloxException.InvalidArgument('Could not convert keyword to string')
+
+        if len(keyword) < 3 or len(keyword) > 20:
+            raise RobloxException.InvalidArgument('keyword must be between 3 and 20 characters')
+
+        try:
+            limit = int(limit)
+        except:
+            raise RobloxException.InvalidArgument('Could not convert limit to integer')
+
+        if not limit in [10, 25, 50, 100]:
+            raise RobloxException.InvalidArgument('Limit must be 10, 25, 50, or 100')
+
+        url = f'https://users.roblox.com/v1/users/search?keyword={keyword}&limit={limit}'
+        r = requests.get(url)
+
+        if r.status_code == 200:
+            return r.json()
+        else:
+            if r.status_code == 400:
+                raise RobloxException.BadRequest(f'[{r.status_code}] {r.reason}')
+            elif r.status_code == 429:
+                raise RobloxException.TooManyRequests(f'[{r.status_code}] {r.reason}')
+            else:
+                raise RobloxException.UnknownError(f'[{r.status_code}] {r.reason}')
+
+class User(BaseUser):
+    def __init__(self, info):
+        self._name = info.get('name')
+        self._display_name = info.get('displayName') or None
+        self._id = info.get('id')
+        self._description = info.get('description') or ''
+        self._banned = info.get('isBanned') or False
+        self._created = info.get('created') and datetime.datetime.strptime(info['created'], '%Y-%m-%dT%H:%M:%S.%fZ') or None
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def display_name(self):
+        return self._display_name
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def description(self):
+        return self._description
+
+    @property
+    def banned(self):
+        return self._banned
+
+    @property
+    def created(self):
+        return self._created
 
     def get_status(self):
-        status_url = f'https://users.roblox.com/v1/users/{self.id}/status'
-        status_data = requests.get(status_url)
-        return status_data['status']
+        data = self._get_user_status(self.id)
+        return data['status']
+
+    def get_username_history(self, limit):
+        data = self._get_user_username_history(self.id, limit)
+        return [username['name'] for username in data['data']]
 
 def search_users(keyword, limit):
-    try:
-        limit = int(limit)
-    except ValueError:
-        raise Exception('Could not convert limit to integer')
+    data = BaseUser()._search_users(keyword, limit)
 
-    if not limit in [10, 25, 50, 100]:
-        raise Exception('Limit must be 10, 25, 50, or 100')
-        
-    url = f'https://users.roblox.com/v1/users/search?keyword={keyword}&limit={limit}'
-    data = requests.get(url)
-    
     users = []
     for user_data in data['data']:
         user = get_user(user_data['id'])
         users.append(user)
     return users
-    
+
 def get_user(user_id=None, username=None):
     if not user_id and not username:
-        raise Exception('Missing argument: user_id or username')
+        raise RobloxException.MissingArgument('Missing argument: user_id or username')
     elif user_id:
         pass
     elif username:
@@ -75,7 +161,6 @@ def get_user(user_id=None, username=None):
         else:
             return None
 
-    url = f'https://users.roblox.com/v1/users/{user_id}'
-    data = requests.get(url)
+    data = BaseUser()._get_user_info(user_id)
     user = User(data)
     return user

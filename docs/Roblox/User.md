@@ -18,11 +18,8 @@ Specifies if the user is banned.
 ## `datetime.datetime` roblox.User.**created**
 The user's account's creation date.
 
-## `method` roblox.User.**get_attributes()** -> `dict`
-Returns the user's attributes.
+## `method` roblox.User.**get_status()** -> `str`
+Returns the user's status.
 
 ## `method` roblox.User.**get_username_history(limit)** -> `list str`
 Returns the user's username history. Supported limits include 10, 25, 50, and 100.
-
-## `method` roblox.User.**get_status()** -> `str`
-Returns the user's status.
