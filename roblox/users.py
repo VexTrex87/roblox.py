@@ -46,3 +46,24 @@ def get_user(user_id):
 
     user = User(data)
     return user
+
+def search_users(keyword, limit=100):
+    if not limit:
+        limit = 100
+
+    try:
+        limit = int(limit)
+    except ValueError:
+        raise Exception('Could not convert limit to integer')
+
+    if not limit in [10, 25, 50, 100]:
+        raise Exception('Limit must be 10, 25, 50, or 100')
+        
+    url = f'https://users.roblox.com/v1/users/search?keyword={keyword}&limit={limit}'
+    data = requests.get(url)
+    
+    users = []
+    for user_data in data['data']:
+        user = get_user(user_data['id'])
+        users.append(user)
+    return users
